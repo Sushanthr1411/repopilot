@@ -1,0 +1,77 @@
+# RepoPilot AI — Docker Compose
+#
+# Quick start:
+#   1. Create a .env file next to this file (see .env.example).
+#      At minimum set:  LLM_MODEL  +  your provider API key.
+#   2. Put Python repos you want to analyze in the ./repos/ folder.
+#      Inside the app, reference them as /repos/<folder-name>.
+#   3. docker compose up --build
+#   4. Open http://localhost:3000
+
+services:
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB:       repopilot
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U postgres -d repopilot"]
+      interval: 5s
+      timeout:  5s
+      retries:  10
+    restart: unless-stopped
+
+  # ── Backend (FastAPI) ─────────────────────────────────────────────────────
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Always override DATABASE_URL so it points to the postgres service, not localhost
+      DATABASE_URL:             postgresql+asyncpg://postgres:postgres@postgres:5432/repopilot
+      CHROMA_PERSIST_DIRECTORY: /app/data/chroma
+      # Repos mounted from the host are accessible at /repos inside the container
+      ALLOWED_REPO_ROOT:        /repos
+      CORS_ALLOW_ORIGINS:       '["http://localhost:3000"]'
+      APP_ENV:                  production
+      APP_DEBUG:                "false"
+      # Agent limits — raise these for large repos
+      AGENT_MAX_ITERATIONS:     "25"
+      AGENT_MAX_TOOL_CALLS:     "60"
+    env_file:
+      # Load GEMINI_API_KEY / ANTHROPIC_API_KEY / LLM_MODEL etc. from .env
+      # (docker compose auto-loads a .env next to this file — this makes it explicit)
+      - path: .env
+        required: false
+    volumes:
+      # ChromaDB data — persists between restarts
+      - chroma_data:/app/data/chroma
+      # HuggingFace model cache — so the embedding model isn't re-downloaded every time
+      - model_cache:/root/.cache
+      # Mount your repos read-only.  Inside the container they appear at /repos/<name>.
+      # On Windows: use forward slashes, e.g.  ./repos:/repos:ro
+      - ./repos:/repos:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Frontend (React → nginx) ──────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+# ── Volumes ───────────────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+  chroma_data:
+  model_cache:

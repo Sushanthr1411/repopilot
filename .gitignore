@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+.uv/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# pytest
+.pytest_cache/
+.cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# mypy / type checkers
+.mypy_cache/
+.dmypy.json
+.pytype/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Alembic (future)
+# alembic/versions/*.pyc
+
+# Logs
+*.log
+logs/
+
+# Node (future frontend)
+node_modules/
+.next/
+
+# ChromaDB + model cache
+data/
+backend/data/
+.chroma/
+
+# HuggingFace model cache (downloaded on first use)
+# ~/.cache/huggingface/ is outside the repo, but guard local caches
+models/
+sentence_transformers_cache/
+
+# Docker — repos mounted at runtime, not committed
+repos/*
+!repos/.gitkeep
